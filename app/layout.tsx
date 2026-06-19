@@ -10,11 +10,11 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'GitHub Profile Views Badge Generator',
+  title: 'githubvisitcounter',
   description: 'Generate a custom, self-hosted GitHub profile views counter badge with real-time stats. No third-party services required.',
   generator: 'v0.app',
   openGraph: {
-    title: 'GitHub Profile Views Badge',
+    title: 'githubvisitcounter',
     description: 'Create stunning profile view counters for your GitHub README',
     type: 'website',
   },

@@ -1,7 +1,7 @@
 import BadgeGenerator from '@/components/badge-generator'
 
 export const metadata = {
-  title: 'GitHub Profile Views Badge',
+  title: 'githubvisitcounter',
   description: 'Generate a custom GitHub-compatible profile views counter badge',
 }
 
