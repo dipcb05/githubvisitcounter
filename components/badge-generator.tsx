@@ -3,17 +3,20 @@
 import { useState, useEffect } from 'react'
 import { Copy, Check, Loader } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { generateBadgeUrl, generateMarkdownCode } from '@/lib/badge-utils'
-import { getGitHubStats, formatNumber, type GitHubStats } from '@/lib/github-stats'
+import { generateBadgeUrl, generateMarkdownCode, formatNumber, type CountMode } from '@/lib/badge-utils'
+import type { GitHubStats } from '@/lib/github-stats'
 
-const STYLES = ['flat', 'flat-square', 'plastic']
+const STYLES = ['flat', 'flat-square', 'plastic', 'rounded', 'for-the-badge', 'social']
 
 export default function BadgeGenerator() {
   const [username, setUsername] = useState('dipcb05')
   const [label, setLabel] = useState('Profile views')
   const [color, setColor] = useState('#0e75b6')
   const [style, setStyle] = useState('flat')
+  const [mode, setMode] = useState<CountMode>('unique')
+  const [ttl, setTtl] = useState(21600)
   const [badgeUrl, setBadgeUrl] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState(false)
   const [baseUrl, setBaseUrl] = useState('')
@@ -30,18 +33,19 @@ export default function BadgeGenerator() {
   // Generate badge URL when params change
   useEffect(() => {
     if (baseUrl) {
-      const url = generateBadgeUrl(baseUrl, username, label, color, style)
-      setBadgeUrl(url)
+      const options = { mode, ttl }
+      setBadgeUrl(generateBadgeUrl(baseUrl, username, label, color, style, options))
+      setPreviewUrl(generateBadgeUrl(baseUrl, username, label, color, style, { ...options, preview: true }))
     }
-  }, [username, label, color, style, baseUrl])
+  }, [username, label, color, style, mode, ttl, baseUrl])
 
   // Fetch GitHub stats when username changes
   useEffect(() => {
     const fetchStats = async () => {
       if (!username) return
       setLoadingStats(true)
-      const stats = await getGitHubStats(username)
-      setGithubStats(stats)
+      const response = await fetch(`/api/github-stats?username=${encodeURIComponent(username)}`)
+      setGithubStats(response.ok ? await response.json() : null)
       setLoadingStats(false)
     }
 
@@ -152,12 +156,62 @@ export default function BadgeGenerator() {
                 </div>
               </div>
 
+
+
+              {/* Counting Mode */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-slate-200 mb-3">
+                  Counting Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['unique', 'total'] as CountMode[]).map((option) => (
+                    <motion.button
+                      key={option}
+                      onClick={() => setMode(option)}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className={`py-3 px-3 rounded-lg text-sm font-medium transition-all ${
+                        mode === option
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-lg shadow-blue-500/50'
+                          : 'bg-slate-700/30 text-slate-300 border border-slate-600/50 hover:bg-slate-700/50'
+                      }`}
+                    >
+                      {option === 'unique' ? 'Unique views' : 'Every request'}
+                    </motion.button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  Unique mode prevents refreshes from counting again during the TTL window.
+                </p>
+              </div>
+
+              {/* Unique TTL */}
+              {mode === 'unique' ? (
+                <div className="mb-4">
+                  <label htmlFor="ttl" className="block text-sm font-semibold text-slate-200 mb-3">
+                    Unique TTL seconds
+                  </label>
+                  <input
+                    id="ttl"
+                    type="number"
+                    min={60}
+                    max={86400}
+                    value={ttl}
+                    onChange={(e) => setTtl(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                  />
+                  <p className="text-xs text-slate-400 mt-2">
+                    Clamped by the API between 60 and 86400 seconds. Default is 6 hours.
+                  </p>
+                </div>
+              ) : null}
+
               {/* Style Selector */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-slate-200 mb-3">
                   Badge Style
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {STYLES.map((s) => (
                     <motion.button
                       key={s}
@@ -278,7 +332,7 @@ export default function BadgeGenerator() {
               <div className="bg-slate-900/80 rounded-xl p-6 flex items-center justify-center min-h-40 border border-slate-700/50">
                 {badgeUrl ? (
                   <motion.img
-                    src={badgeUrl}
+                    src={previewUrl}
                     alt="Profile views badge"
                     className="max-w-full h-auto"
                     initial={{ scale: 0.9 }}
